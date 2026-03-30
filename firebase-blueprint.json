@@ -1,0 +1,56 @@
+{
+  "entities": {
+    "Commit": {
+      "title": "Commit",
+      "description": "A git commit that has been analyzed for risk.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Commit hash" },
+        "author": { "type": "string", "description": "Author name" },
+        "message": { "type": "string", "description": "Commit message" },
+        "timestamp": { "type": "string", "format": "date-time", "description": "Commit timestamp" },
+        "riskScore": { "type": "number", "description": "Calculated risk score (0-100)" },
+        "riskLevel": { "type": "string", "enum": ["low", "medium", "high", "critical"] },
+        "analysis": { "type": "string", "description": "AI generated analysis of the commit" },
+        "files": { "type": "array", "items": { "type": "string" }, "description": "List of files changed" },
+        "repository": { "type": "string", "description": "Repository name" }
+      },
+      "required": ["id", "author", "message", "timestamp", "riskScore", "riskLevel", "repository"]
+    },
+    "FileRisk": {
+      "title": "FileRisk",
+      "description": "Risk assessment for a specific file in the codebase.",
+      "type": "object",
+      "properties": {
+        "filePath": { "type": "string", "description": "Path to the file" },
+        "riskScore": { "type": "number", "description": "Current risk score" },
+        "lastModified": { "type": "string", "format": "date-time" },
+        "bugCount": { "type": "integer", "description": "Predicted bug count" },
+        "repository": { "type": "string" }
+      },
+      "required": ["filePath", "riskScore", "repository"]
+    }
+  },
+  "firestore": {
+    "/commits/{commitId}": {
+      "schema": "Commit",
+      "description": "Analyzed commits"
+    },
+    "/fileRisks/{fileRiskId}": {
+      "schema": "FileRisk",
+      "description": "Per-file risk tracking"
+    },
+    "/repositories/{repoId}": {
+      "schema": "Repository",
+      "description": "Monitored repositories"
+    },
+    "/team/{memberId}": {
+      "schema": "TeamMember",
+      "description": "Team members with access"
+    },
+    "/chats/{chatId}": {
+      "schema": "ChatMessage",
+      "description": "Sentinel AI chat history"
+    }
+  }
+}

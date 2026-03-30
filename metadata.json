@@ -1,0 +1,5 @@
+{
+  "name": "CodeSentinel",
+  "description": "Continuously monitor codebases, detect risky patterns, and predict bugs before execution.",
+  "requestFramePermissions": []
+}

@@ -1,0 +1,99 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // ===============================================================
+    // Assumed Data Model
+    // ===============================================================
+    //
+    // Collection: commits
+    // Document ID: commitId (string)
+    // Fields:
+    //   - id: string (required) - Commit hash
+    //   - author: string (required) - Author name
+    //   - message: string (required) - Commit message
+    //   - timestamp: string (required) - ISO 8601 timestamp
+    //   - riskScore: number (required) - 0-100
+    //   - riskLevel: string (required) - low, medium, high, critical
+    //   - analysis: string (optional) - AI analysis
+    //   - files: list (optional) - List of file paths
+    //   - repository: string (required) - Repository name
+    //
+    // Collection: fileRisks
+    // Document ID: fileRiskId (string)
+    // Fields:
+    //   - filePath: string (required) - Path to the file
+    //   - riskScore: number (required) - 0-100
+    //   - lastModified: string (optional) - ISO 8601 timestamp
+    //   - bugCount: int (optional) - Predicted bug count
+    //   - repository: string (required) - Repository name
+    //
+    // ===============================================================
+
+    // Helper functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isAdmin() {
+      return isAuthenticated() &&
+        (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin' ||
+          (request.auth.token.email == "zelitesuri@gmail.com" && request.auth.token.email_verified == true));
+    }
+
+    function isValidCommit(data) {
+      return data.keys().hasAll(['id', 'author', 'message', 'timestamp', 'riskScore', 'riskLevel', 'repository']) &&
+             data.id is string && data.id.size() > 0 &&
+             data.author is string && data.author.size() > 0 &&
+             data.message is string && data.message.size() > 0 &&
+             data.timestamp is string &&
+             data.riskScore is number && data.riskScore >= 0 && data.riskScore <= 100 &&
+             data.riskLevel in ['low', 'medium', 'high', 'critical'] &&
+             data.repository is string && data.repository.size() > 0 &&
+             (!('predictedBugs' in data) || data.predictedBugs is list) &&
+             (!('recommendations' in data) || data.recommendations is list) &&
+             (!('impactedModules' in data) || data.impactedModules is list) &&
+             (!('analysis' in data) || data.analysis is string);
+    }
+
+    function isValidFileRisk(data) {
+      return data.keys().hasAll(['filePath', 'riskScore', 'repository']) &&
+             data.filePath is string && data.filePath.size() > 0 &&
+             data.riskScore is number && data.riskScore >= 0 && data.riskScore <= 100 &&
+             data.repository is string && data.repository.size() > 0;
+    }
+
+    // Rules
+    match /commits/{commitId} {
+      allow read: if isAuthenticated();
+      allow create, update: if isAdmin() && isValidCommit(request.resource.data);
+      allow delete: if isAdmin();
+    }
+
+    match /fileRisks/{fileRiskId} {
+      allow read: if isAuthenticated();
+      allow create, update: if isAdmin() && isValidFileRisk(request.resource.data);
+      allow delete: if isAdmin();
+    }
+
+    match /repositories/{repoId} {
+      allow read: if isAuthenticated();
+      allow create, update, delete: if isAdmin();
+    }
+
+    match /team/{memberId} {
+      allow read: if isAuthenticated();
+      allow create, update, delete: if isAdmin();
+    }
+
+    match /chats/{chatId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated();
+      allow delete: if isAdmin();
+    }
+
+    match /users/{userId} {
+      allow read: if isAuthenticated() && (request.auth.uid == userId || isAdmin());
+      allow create, update: if isAdmin();
+    }
+  }
+}
